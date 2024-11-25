@@ -3,6 +3,7 @@ const multer = require('multer')
 const path = require('path')
 const mongoose = require('mongoose')
 const File = require('./fileSchema')
+const fs = require('fs')
 const { v4: uuidv4 } = require('uuid');
 
 const app = express()
@@ -14,7 +15,10 @@ mongoose.connect('mongodb://localhost:27017/fileData')
 
 const diskStorage = multer.diskStorage({
     destination: (req, res, cb) => {
-        cb(null, 'uploads')
+        const { project_name } = req.headers
+        const projectFilePath = path.join(__dirname, 'uploads', project_name)
+        fs.mkdirSync(projectFilePath, { recursive: true })
+        cb(null, projectFilePath)
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
@@ -46,9 +50,9 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 })
 
 
-app.get('/uploads', async(req, res) => {
+app.get('/uploads', async (req, res) => {
     const id = req.query.id
-    const filePath = await File.findOne({ uniqueIdentifier: `${id}` })    
+    const filePath = await File.findOne({ uniqueIdentifier: `${id}` })
     if (!filePath) {
         return res.status(404).send('File not found');
     }
